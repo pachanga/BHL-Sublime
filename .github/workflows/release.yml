@@ -21,6 +21,7 @@ jobs:
             BHL.sublime-syntax \
             LSP-bhl.sublime-settings \
             plugin.py \
+            debugger.py \
             .python-version \
             README.md
 
