@@ -1,0 +1,9 @@
+%YAML 1.2
+---
+name: BHL
+file_extensions:
+  - bhl
+scope: source.bhl
+
+contexts:
+  main: []

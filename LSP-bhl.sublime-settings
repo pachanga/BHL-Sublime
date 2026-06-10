@@ -1,0 +1,30 @@
+// Settings for the BHL Language Server (https://github.com/bitdotgames/BHL).
+// To override, copy relevant keys to:
+//   Packages/User/LSP-bhl.sublime-settings
+{
+	// Path to the bhl executable.
+	// Leave empty to use "bhl" from PATH.
+	// On Windows use the bhl.bat path, e.g. "C:\\BHL\\bhl.bat".
+	"executablePath": "",
+
+	// Force full rebuild on startup by setting BHL_REBUILD=1 and BHL_SILENT=1.
+	// Useful during active development of the LSP server.
+	"forceRebuild": false,
+
+	// Server command. Add "--log-file=/tmp/bhlsp.log" for debug logging.
+	"command": [
+		"${bhl}",
+		"lsp"
+	],
+
+	// Activates this language server for .bhl files.
+	"selector": "source.bhl",
+
+	// Environment variables passed to the server process.
+	// ${bhl_rebuild} / ${bhl_silent} expand to "1" when forceRebuild is true,
+	// and to "" (no-op) otherwise.
+	"env": {
+		"BHL_REBUILD": "${bhl_rebuild}",
+		"BHL_SILENT": "${bhl_silent}"
+	}
+}
