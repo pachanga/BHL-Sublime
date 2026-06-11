@@ -37,7 +37,15 @@ make install
 
 ## Configuration
 
-Create `Packages/User/LSP-bhl.sublime-settings` to override defaults:
+Create `Packages/User/LSP-bhl.sublime-settings` to override defaults. The `Packages` directory is at:
+
+| Platform | Path |
+|---|---|
+| macOS | `~/Library/Application Support/Sublime Text/Packages/` |
+| Windows | `%APPDATA%\Sublime Text\Packages\` |
+| Linux | `~/.config/sublime-text/Packages/` |
+
+You can also open it via **Preferences → Browse Packages…** in Sublime Text.
 
 | Setting | Default | Description |
 |---|---|---|
