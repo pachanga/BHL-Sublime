@@ -16,8 +16,7 @@ jobs:
 
       - name: Build .sublime-package
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          zip -r BHL-Sublime-${VERSION}.sublime-package \
+          zip -r BHL-Sublime.sublime-package \
             BHL.sublime-syntax \
             LSP-bhl.sublime-settings \
             plugin.py \

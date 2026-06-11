@@ -13,8 +13,8 @@ class Bhl(AbstractPlugin):
         return "bhl"
 
     @classmethod
-    def configuration(cls) -> Tuple[str, str]:
-        return __name__, "LSP-bhl"
+    def configuration(cls) -> Tuple[sublime.Settings, str]:
+        return sublime.load_settings("LSP-bhl.sublime-settings"), "Packages/BHL-Sublime/LSP-bhl.sublime-settings"
 
     @classmethod
     def additional_variables(cls) -> Dict[str, str]:

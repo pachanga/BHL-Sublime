@@ -12,7 +12,7 @@ You also need the **[LSP](https://packagecontrol.io/packages/LSP)** package inst
 
 ### From GitHub Releases (recommended)
 
-1. Download the latest `BHL-Sublime-*.sublime-package` from [Releases](../../releases).
+1. Download the latest `BHL-Sublime.sublime-package` from [Releases](../../releases).
 2. Copy it into your Sublime Text `Installed Packages` folder:
 
 | Platform | Path |
@@ -26,7 +26,7 @@ Sublime Text picks it up automatically — no restart needed.
 ### Via command line (macOS)
 
 ```sh
-cp BHL-Sublime-*.sublime-package ~/Library/Application\ Support/Sublime\ Text/Installed\ Packages/
+cp BHL-Sublime.sublime-package ~/Library/Application\ Support/Sublime\ Text/Installed\ Packages/
 ```
 
 Or use the Makefile:
