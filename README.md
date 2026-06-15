@@ -84,11 +84,11 @@ Add `"semantic_highlighting": true` to your LSP package settings
 
 ## Debugging
 
-BHL debugging requires the **[Debugger](https://packagecontrol.io/packages/Debugger)** package (install via Package Control). No extra configuration is needed — the BHL debug adapter is bundled in this package and registers automatically when Debugger is present.
+BHL debugging requires the **[Debugger](https://packagecontrol.io/packages/Debugger)** package installed via Package Control. The BHL debug adapter is bundled in this package and registers with Debugger automatically on startup — no extra configuration is needed.
 
 ### Setup
 
-Add a debug configuration to your `.sublime-project`:
+Add a `debugger_configurations` entry to your `.sublime-project` file:
 
 ```json
 {
@@ -112,13 +112,14 @@ Add a debug configuration to your `.sublime-project`:
 |---|---|---|
 | `host` | `"localhost"` | Host where the BHL debug server is running |
 | `port` | — | Port the BHL debug server listens on (required) |
-| `timeout` | `30` | Seconds to wait for the server to become available |
+| `timeout` | `30` | Seconds to wait for the debug server to become available |
 
 ### Usage
 
 1. Start your Unity game — the BHL debug server begins listening on the configured port.
-2. In Sublime: **Debugger → Open**, select **Attach to BHL**, press **Run**.
-3. Set breakpoints by clicking the gutter in any `.bhl` file.
+2. Open the Debugger panel: **Debugger → Open**.
+3. Select **Attach to BHL** from the configuration list and press **Run**.
+4. Set breakpoints by clicking the gutter in any `.bhl` file.
 
 ## Usage
 
