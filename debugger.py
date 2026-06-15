@@ -7,7 +7,7 @@ def plugin_loaded() -> None:
     except ImportError:
         return  # Debugger package not installed — skip silently
 
-    class BhlDebugAdapter(dap.Adapter):
+    class BhlDebugAdapter(dap.AdapterConfiguration):
         type = "bhl"
 
         @property
@@ -27,13 +27,9 @@ def plugin_loaded() -> None:
                 }
             ]
 
-        async def start(
-            self,
-            console: dap.Console,
-            configuration: dap.ConfigurationExpanded,
-        ) -> dap.Transport:
+        async def start(self, log, configuration):
             host = configuration.get("host") or "localhost"
             port = configuration["port"]
             timeout = configuration.get("timeout") or 30
-            console.info(f"Connecting to BHL debug server on {host}:{port}")
+            log.info(f"Connecting to BHL debug server on {host}:{port}")
             return dap.SocketTransport(host=host, port=port, timeout=timeout)
