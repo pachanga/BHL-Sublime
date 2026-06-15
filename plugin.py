@@ -57,9 +57,12 @@ def _register_debug_adapter(attempts: int = 0) -> None:
     try:
         from Debugger.modules import dap
     except ImportError:
+        print(f"BHL: Debugger not available (attempt {attempts})")
         if attempts < 20:
             sublime.set_timeout(lambda: _register_debug_adapter(attempts + 1), 500)
         return
+
+    print(f"BHL: registering debug adapter (attempt {attempts})")
 
     class BhlDebugAdapter(dap.AdapterConfiguration):
         type = "bhl"
@@ -87,6 +90,8 @@ def _register_debug_adapter(attempts: int = 0) -> None:
             timeout = configuration.get("timeout") or 30
             log.info(f"Connecting to BHL debug server on {host}:{port}")
             return dap.SocketTransport(host=host, port=port, timeout=timeout)
+
+    print(f"BHL: debug adapter registered")
 
 
 def plugin_unloaded() -> None:
