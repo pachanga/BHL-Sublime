@@ -99,11 +99,14 @@ Add `"semantic_highlighting": true` to your LSP package settings
 
 BHL debugging requires the **[Debugger](https://packagecontrol.io/packages/Debugger)** package installed via Package Control. The BHL debug adapter is bundled in this package and registers with Debugger automatically on startup — no extra configuration is needed.
 
-> Sublime Text 4213+ runs plugins on Python 3.14, which the latest Package Control release of Debugger (0.11.6) does not support (`RuntimeError: loop … is not the running loop`). Until a new release is out, install Debugger from the `master` branch of [daveleroy/SublimeDebugger](https://github.com/daveleroy/SublimeDebugger) via `git clone` into `Packages/`.
+> Sublime Text 4213+ runs plugins on Python 3.14, which Debugger 0.11.6 and older do not support (`RuntimeError: loop … is not the running loop`). Use a newer release (the adapter was checked against 0.12.1), or install Debugger from the `master` branch of [daveleroy/SublimeDebugger](https://github.com/daveleroy/SublimeDebugger) via `git clone` into `Packages/`.
 
 ### Setup
 
-Add a `debugger_configurations` entry to your `.sublime-project` file:
+A configuration can live in either of two places. Run **Debugger: Add Configuration**, pick `bhl`, then
+**BHL: Attach to Debug Server** to insert one into your `.sublime-project` automatically, or write it by hand.
+
+**Per project** — add a `debugger_configurations` entry to your `.sublime-project` file:
 
 ```json
 {
@@ -111,6 +114,25 @@ Add a `debugger_configurations` entry to your `.sublime-project` file:
         { "path": "." }
     ],
     "debugger_configurations": [
+        {
+            "type": "bhl",
+            "request": "attach",
+            "name": "Attach to BHL",
+            "host": "localhost",
+            "port": 7777,
+            "timeout": 30
+        }
+    ]
+}
+```
+
+**Globally** — to have the same configuration in every project (including a lone `.bhl` file with no saved
+project), add it to `global_debugger_configurations` in `Packages/User/Debugger.sublime-settings` (open it via
+**Preferences → Package Settings → Debugger → Settings**):
+
+```json
+{
+    "global_debugger_configurations": [
         {
             "type": "bhl",
             "request": "attach",
