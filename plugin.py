@@ -1,9 +1,30 @@
 from __future__ import annotations
 
+import os
+import shutil
+import threading
 from typing import Dict, Optional, Tuple
 
 import sublime
+import sublime_plugin
 from LSP.plugin import AbstractPlugin, register_plugin, unregister_plugin
+
+from . import download
+
+SETTINGS_FILE = "LSP-bhl.sublime-settings"
+
+
+def _custom_executable() -> str:
+    """User-provided `executablePath`; takes precedence over the downloaded release."""
+    return sublime.load_settings(SETTINGS_FILE).get("executablePath") or ""
+
+
+def _installs_root() -> str:
+    return os.path.join(Bhl.storage_path(), "BHL", "lsp-releases")
+
+
+def _status(message: str) -> None:
+    sublime.set_timeout(lambda: sublime.status_message("BHL: " + message), 0)
 
 
 class Bhl(AbstractPlugin):
@@ -14,12 +35,12 @@ class Bhl(AbstractPlugin):
 
     @classmethod
     def configuration(cls) -> Tuple[sublime.Settings, str]:
-        return sublime.load_settings("LSP-bhl.sublime-settings"), "Packages/BHL-Sublime/LSP-bhl.sublime-settings"
+        return sublime.load_settings(SETTINGS_FILE), "Packages/BHL-Sublime/LSP-bhl.sublime-settings"
 
     @classmethod
     def additional_variables(cls) -> Dict[str, str]:
-        settings = sublime.load_settings("LSP-bhl.sublime-settings")
-        executable = settings.get("executablePath") or "bhl"
+        settings = sublime.load_settings(SETTINGS_FILE)
+        executable = _custom_executable() or download.installed_binary(_installs_root()) or "bhl"
         force_rebuild = bool(settings.get("forceRebuild", False))
         rebuild = "1" if force_rebuild else ""
         return {
@@ -29,6 +50,23 @@ class Bhl(AbstractPlugin):
         }
 
     @classmethod
+    def needs_update_or_installation(cls) -> bool:
+        return (
+            not _custom_executable()
+            and download.current_platform_suffix() is not None
+            and download.installed_binary(_installs_root()) is None
+        )
+
+    @classmethod
+    def install_or_update(cls) -> None:
+        releases = download.fetch_releases()
+        if not releases:
+            raise RuntimeError("No BHL LSP releases found")
+        release = releases[0]
+        download.install_release(release, _installs_root(), _status)
+        _status("installed " + download.release_version(release["tag_name"]))
+
+    @classmethod
     def can_start(
         cls,
         window: sublime.Window,
@@ -36,16 +74,78 @@ class Bhl(AbstractPlugin):
         workspace_folders,
         configuration,
     ) -> Optional[str]:
-        settings = sublime.load_settings("LSP-bhl.sublime-settings")
-        executable = settings.get("executablePath") or "bhl"
-        if executable != "bhl":
-            import os
+        executable = _custom_executable()
+        if executable:
             if not os.path.isfile(executable):
                 return (
                     f'BHL executable not found at "{executable}". '
                     "Update the executablePath setting."
                 )
+        elif not download.installed_binary(_installs_root()) and not shutil.which("bhl"):
+            return (
+                "No BHL LSP binary available. Run \"BHL: Manage LSP Versions\" "
+                "or set the executablePath setting."
+            )
         return None
+
+
+class BhlManageLspVersionsCommand(sublime_plugin.WindowCommand):
+    """Pick a BHL LSP release to download, or remove the downloaded one."""
+
+    def run(self) -> None:
+        _status("fetching releases…")
+        threading.Thread(target=self._fetch, daemon=True).start()
+
+    def _fetch(self) -> None:
+        try:
+            releases = download.fetch_releases()
+        except Exception as e:
+            sublime.set_timeout(lambda: sublime.error_message(f"BHL: failed to fetch releases: {e}"), 0)
+            return
+        sublime.set_timeout(lambda: self._show(releases), 0)
+
+    def _show(self, releases) -> None:
+        installed = download.version_from_binary_path(download.installed_binary(_installs_root()))
+        items = []
+        actions = []
+        if installed:
+            items.append(["Remove downloaded release", f"currently {installed}"])
+            actions.append(None)
+        for release in releases:
+            version = download.release_version(release["tag_name"])
+            tags = []
+            if version == installed:
+                tags.append("installed")
+            if release.get("prerelease"):
+                tags.append("pre-release")
+            published = str(release.get("published_at") or "")[:10]
+            items.append([version, " · ".join(filter(None, [published] + tags))])
+            actions.append(release)
+
+        def on_select(index: int) -> None:
+            if index < 0:
+                return
+            release = actions[index]
+            if release is None:
+                download.remove_installs(_installs_root())
+                sublime.status_message("BHL: downloaded release removed")
+            else:
+                threading.Thread(target=self._install, args=(release,), daemon=True).start()
+
+        placeholder = f"Currently installed: {installed}" if installed else "Select a version to install"
+        self.window.show_quick_panel(items, on_select, placeholder=placeholder)
+
+    def _install(self, release) -> None:
+        version = download.release_version(release["tag_name"])
+        try:
+            download.install_release(release, _installs_root(), _status)
+        except Exception as e:
+            sublime.set_timeout(lambda: sublime.error_message(f"BHL: failed to install {version}: {e}"), 0)
+            return
+        sublime.set_timeout(lambda: sublime.message_dialog(
+            f"Installed BHL {version}.\n\nRestart the language server "
+            "(\"LSP: Restart Server\") to use it. Ignored while executablePath is set."
+        ), 0)
 
 
 def plugin_loaded() -> None:
@@ -84,11 +184,17 @@ def _register_debug_adapter(attempts: int = 0) -> None:
                 }
             ]
 
-        async def start(self, log, configuration):
+        # Debugger <= 0.11.6 passes `log`, newer master passes `console`; accept either.
+        async def start(self, *args, configuration=None, **kwargs):
+            logger = kwargs.get("console") or kwargs.get("log")
+            if configuration is None:
+                configuration = args[-1]
+                logger = logger or (args[0] if len(args) > 1 else None)
             host = configuration.get("host") or "localhost"
             port = configuration["port"]
             timeout = configuration.get("timeout") or 30
-            log.info(f"Connecting to BHL debug server on {host}:{port}")
+            if logger is not None:
+                logger.info(f"Connecting to BHL debug server on {host}:{port}")
             return dap.SocketTransport(host=host, port=port, timeout=timeout)
 
     print(f"BHL: debug adapter registered")

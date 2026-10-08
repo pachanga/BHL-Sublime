@@ -2,8 +2,9 @@
 // To override, copy relevant keys to:
 //   Packages/User/LSP-bhl.sublime-settings
 {
-	// Path to the bhl executable.
-	// Leave empty to use "bhl" from PATH.
+	// Path to a custom bhl executable. When set, it is used instead of the
+	// prebuilt LSP release downloaded from GitHub (see "BHL: Manage LSP Versions").
+	// Leave empty to use the downloaded release (falls back to "bhl" from PATH).
 	// On Windows use the bhl.bat path, e.g. "C:\\BHL\\bhl.bat".
 	"executablePath": "",
 

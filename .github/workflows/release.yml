@@ -19,7 +19,9 @@ jobs:
           zip -r BHL-Sublime.sublime-package \
             BHL.sublime-syntax \
             LSP-bhl.sublime-settings \
+            Default.sublime-commands \
             plugin.py \
+            download.py \
             .python-version \
             README.md
 

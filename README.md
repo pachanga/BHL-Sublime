@@ -4,9 +4,16 @@ Sublime Text package providing BHL language support via the Language Server Prot
 
 ## Requirements
 
-You need to have the BHL LSP server available. Clone the [BHL repository](https://github.com/bitdotgames/BHL) to some directory and point the package at the `bhl` script (or `bhl.bat` on Windows). The package launches it as `path/to/BHL/bhl lsp` to start the language server.
+You need the **[LSP](https://packagecontrol.io/packages/LSP)** package installed via Package Control.
 
-You also need the **[LSP](https://packagecontrol.io/packages/LSP)** package installed via Package Control.
+The BHL language server is a prebuilt binary downloaded automatically from the
+[BHL GitHub releases](https://github.com/bitdotgames/BHL/releases) (`lsp-v*` tags) the first time you open
+a `.bhl` file. The download is verified against the release's `.sha256` checksum and stored in Sublime's
+`Package Storage`. To pick a different version or remove the download, run **BHL: Manage LSP Versions**
+from the Command Palette, then restart the server (**LSP: Restart Server**).
+
+Prefer your own build? Set `executablePath` (see [Configuration](#configuration)) to a `bhl` script from a
+[BHL checkout](https://github.com/bitdotgames/BHL) and it will be launched as `bhl lsp` instead.
 
 ## Installation
 
@@ -49,7 +56,7 @@ You can also open it via **Preferences → Browse Packages…** in Sublime Text.
 
 | Setting | Default | Description |
 |---|---|---|
-| `executablePath` | `""` | Path to the `bhl` executable. Leave empty to use `bhl` from `PATH`. On Windows use the `.bat` path, e.g. `C:\BHL\bhl.bat`. |
+| `executablePath` | `""` | Path to a custom `bhl` executable. When set, it overrides the downloaded release. Leave empty to use the downloaded release (or `bhl` from `PATH` if none). On Windows use the `.bat` path, e.g. `C:\BHL\bhl.bat`. |
 | `forceRebuild` | `false` | Forces LSP server rebuild on startup by setting `BHL_REBUILD=1`. Useful during active development of an LSP server. |
 
 ```json

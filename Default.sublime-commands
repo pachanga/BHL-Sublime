@@ -1,0 +1,6 @@
+[
+	{
+		"caption": "BHL: Manage LSP Versions",
+		"command": "bhl_manage_lsp_versions"
+	}
+]
