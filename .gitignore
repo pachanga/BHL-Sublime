@@ -1,2 +1,3 @@
 tags
 *.sublime-package
+__pycache__/
