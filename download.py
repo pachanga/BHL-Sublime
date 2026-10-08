@@ -110,14 +110,16 @@ def _download(url: str, dest: str, on_progress: Progress, label: str) -> None:
     with _open(url) as response, open(dest, "wb") as out:
         total = int(response.headers.get("Content-Length") or 0)
         received = 0
+        last_pct = -1
         while True:
             chunk = response.read(64 * 1024)
             if not chunk:
                 break
             out.write(chunk)
             received += len(chunk)
-            if total:
-                on_progress("Downloading {}… {}%".format(label, received * 100 // total))
+            if total and received * 100 // total != last_pct:
+                last_pct = received * 100 // total
+                on_progress("Downloading {}… {}%".format(label, last_pct))
 
 
 def _sha256(path: str) -> str:

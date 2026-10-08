@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import threading
+import traceback
 from typing import Dict, Optional, Tuple
 
 import sublime
@@ -27,7 +29,53 @@ def _status(message: str) -> None:
     sublime.set_timeout(lambda: sublime.status_message("BHL: " + message), 0)
 
 
+class _InstallProgress:
+    """Status bar activity indicator with a text progress bar; safe to call from any thread."""
+
+    WIDTH = 20
+
+    def __init__(self) -> None:
+        self._indicator: Optional[sublime.ActivityIndicator] = None
+        self._lock = threading.Lock()
+        self._stopped = False
+        sublime.set_timeout(self._start, 0)
+
+    def _start(self) -> None:
+        with self._lock:
+            if self._stopped:
+                return
+            window = sublime.active_window()
+            if window:
+                self._indicator = sublime.ActivityIndicator(window, "BHL: starting…")
+                self._indicator.start()
+
+    def __call__(self, message: str) -> None:
+        match = re.search(r"(\d+)%$", message)
+        if match:
+            filled = int(match.group(1)) * self.WIDTH // 100
+            message = "{} [{}{}]".format(
+                message, "█" * filled, "░" * (self.WIDTH - filled))
+        sublime.set_timeout(lambda: self._set_label("BHL: " + message), 0)
+
+    def _set_label(self, label: str) -> None:
+        with self._lock:
+            if self._indicator and not self._stopped:
+                self._indicator.label = label
+
+    def stop(self) -> None:
+        sublime.set_timeout(self._stop, 0)
+
+    def _stop(self) -> None:
+        with self._lock:
+            self._stopped = True
+            if self._indicator:
+                self._indicator.stop()
+                self._indicator = None
+
+
 _offered_download = False
+# Installs share one directory per release, so two at once would clobber each other.
+_install_lock = threading.Lock()
 
 
 def _install_in_background(release) -> None:
@@ -36,11 +84,16 @@ def _install_in_background(release) -> None:
 
 def _install(release) -> None:
     version = download.release_version(release["tag_name"])
+    progress = _InstallProgress()
     try:
-        download.install_release(release, _installs_root(), _status)
+        with _install_lock:
+            download.install_release(release, _installs_root(), progress)
     except Exception as e:
+        traceback.print_exc()
         sublime.set_timeout(lambda: sublime.error_message(f"BHL: failed to install {version}: {e}"), 0)
         return
+    finally:
+        progress.stop()
     sublime.set_timeout(lambda: sublime.message_dialog(
         f"Installed BHL {version}.\n\nReopen the .bhl file or run "
         "\"LSP: Restart Server\" to start it. Ignored while executablePath is set."
@@ -60,9 +113,14 @@ def _offer_download() -> None:
     try:
         releases = download.fetch_releases()
     except Exception as e:
-        print(f"BHL: failed to fetch releases: {e}")
+        traceback.print_exc()
+        sublime.set_timeout(lambda: sublime.error_message(
+            f"BHL: failed to check for LSP releases: {e}\n\n"
+            "Run \"BHL: Manage LSP Versions\" to retry or set the executablePath setting."
+        ), 0)
         return
     if not releases:
+        sublime.set_timeout(lambda: sublime.error_message("BHL: no LSP releases found on GitHub."), 0)
         return
     release = releases[0]
     version = download.release_version(release["tag_name"])
