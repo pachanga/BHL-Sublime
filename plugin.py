@@ -27,6 +27,56 @@ def _status(message: str) -> None:
     sublime.set_timeout(lambda: sublime.status_message("BHL: " + message), 0)
 
 
+_offered_download = False
+
+
+def _install_in_background(release) -> None:
+    threading.Thread(target=_install, args=(release,), daemon=True).start()
+
+
+def _install(release) -> None:
+    version = download.release_version(release["tag_name"])
+    try:
+        download.install_release(release, _installs_root(), _status)
+    except Exception as e:
+        sublime.set_timeout(lambda: sublime.error_message(f"BHL: failed to install {version}: {e}"), 0)
+        return
+    sublime.set_timeout(lambda: sublime.message_dialog(
+        f"Installed BHL {version}.\n\nReopen the .bhl file or run "
+        "\"LSP: Restart Server\" to start it. Ignored while executablePath is set."
+    ), 0)
+
+
+def _offer_download_once() -> None:
+    """Asks (once per Sublime session) whether to download the latest release."""
+    global _offered_download
+    if _offered_download or download.current_platform_suffix() is None:
+        return
+    _offered_download = True
+    threading.Thread(target=_offer_download, daemon=True).start()
+
+
+def _offer_download() -> None:
+    try:
+        releases = download.fetch_releases()
+    except Exception as e:
+        print(f"BHL: failed to fetch releases: {e}")
+        return
+    if not releases:
+        return
+    release = releases[0]
+    version = download.release_version(release["tag_name"])
+
+    def ask() -> None:
+        if sublime.ok_cancel_dialog(
+            f"BHL language server is not installed.\n\nDownload BHL LSP {version} from GitHub?",
+            "Download",
+        ):
+            _install_in_background(release)
+
+    sublime.set_timeout(ask, 0)
+
+
 class Bhl(AbstractPlugin):
 
     @classmethod
@@ -50,23 +100,6 @@ class Bhl(AbstractPlugin):
         }
 
     @classmethod
-    def needs_update_or_installation(cls) -> bool:
-        return (
-            not _custom_executable()
-            and download.current_platform_suffix() is not None
-            and download.installed_binary(_installs_root()) is None
-        )
-
-    @classmethod
-    def install_or_update(cls) -> None:
-        releases = download.fetch_releases()
-        if not releases:
-            raise RuntimeError("No BHL LSP releases found")
-        release = releases[0]
-        download.install_release(release, _installs_root(), _status)
-        _status("installed " + download.release_version(release["tag_name"]))
-
-    @classmethod
     def can_start(
         cls,
         window: sublime.Window,
@@ -82,6 +115,7 @@ class Bhl(AbstractPlugin):
                     "Update the executablePath setting."
                 )
         elif not download.installed_binary(_installs_root()) and not shutil.which("bhl"):
+            _offer_download_once()
             return (
                 "No BHL LSP binary available. Run \"BHL: Manage LSP Versions\" "
                 "or set the executablePath setting."
@@ -130,22 +164,10 @@ class BhlManageLspVersionsCommand(sublime_plugin.WindowCommand):
                 download.remove_installs(_installs_root())
                 sublime.status_message("BHL: downloaded release removed")
             else:
-                threading.Thread(target=self._install, args=(release,), daemon=True).start()
+                _install_in_background(release)
 
         placeholder = f"Currently installed: {installed}" if installed else "Select a version to install"
         self.window.show_quick_panel(items, on_select, placeholder=placeholder)
-
-    def _install(self, release) -> None:
-        version = download.release_version(release["tag_name"])
-        try:
-            download.install_release(release, _installs_root(), _status)
-        except Exception as e:
-            sublime.set_timeout(lambda: sublime.error_message(f"BHL: failed to install {version}: {e}"), 0)
-            return
-        sublime.set_timeout(lambda: sublime.message_dialog(
-            f"Installed BHL {version}.\n\nRestart the language server "
-            "(\"LSP: Restart Server\") to use it. Ignored while executablePath is set."
-        ), 0)
 
 
 def plugin_loaded() -> None:
