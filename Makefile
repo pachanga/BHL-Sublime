@@ -1,11 +1,12 @@
 .PHONY: all package install clean
 
 PKG_NAME := BHL-Sublime
-PKG_FILES := BHL.sublime-syntax LSP-bhl.sublime-settings Default.sublime-commands Comments.tmPreferences plugin.py download.py .python-version README.md
+PKG_FILES := BHL.sublime-syntax LSP-bhl.sublime-settings Default.sublime-commands Main.sublime-menu Comments.tmPreferences plugin.py download.py .python-version README.md
 
 all: package
 
 package:
+	rm -f $(PKG_NAME).sublime-package
 	zip -r $(PKG_NAME).sublime-package $(PKG_FILES)
 	@echo "Built $(PKG_NAME).sublime-package"
 

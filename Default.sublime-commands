@@ -2,5 +2,13 @@
 	{
 		"caption": "BHL: Manage LSP Versions",
 		"command": "bhl_manage_lsp_versions"
+	},
+	{
+		"caption": "Preferences: BHL Settings",
+		"command": "edit_settings",
+		"args": {
+			"base_file": "${packages}/BHL-Sublime/LSP-bhl.sublime-settings",
+			"default": "// Settings in here override those in \"BHL-Sublime/LSP-bhl.sublime-settings\"\n\n{\n\t$0\n}\n"
+		}
 	}
 ]

@@ -20,6 +20,7 @@ jobs:
             BHL.sublime-syntax \
             LSP-bhl.sublime-settings \
             Default.sublime-commands \
+            Main.sublime-menu \
             Comments.tmPreferences \
             plugin.py \
             download.py \

@@ -49,7 +49,7 @@ Prefer your own build? Set `executablePath` (see [Configuration](#configuration)
 
 ## Configuration
 
-Create `Packages/User/LSP-bhl.sublime-settings` to override defaults. The `Packages` directory is at:
+Open the settings via **Preferences → Package Settings → BHL → Settings** or the Command Palette (**Preferences: BHL Settings**). They live in `Packages/User/LSP-bhl.sublime-settings`, which you can also create by hand to override defaults. The `Packages` directory is at:
 
 | Platform | Path |
 |---|---|
