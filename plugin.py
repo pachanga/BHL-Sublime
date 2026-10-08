@@ -9,9 +9,9 @@ from typing import Dict, Optional, Tuple
 
 import sublime
 import sublime_plugin
-from LSP.plugin import AbstractPlugin, register_plugin, unregister_plugin
+from LSP.plugin import AbstractPlugin, WorkspaceFolder, register_plugin, unregister_plugin
 
-from . import download
+from . import download, project
 
 SETTINGS_FILE = "LSP-bhl.sublime-settings"
 
@@ -81,6 +81,9 @@ class _InstallProgress:
                 self._indicator.stop()
                 self._indicator = None
 
+
+# Window id -> project directory picked via "BHL: Select Project File"; lives until Sublime exits.
+_selected_projects: Dict[int, str] = {}
 
 _offered_download = False
 # Installs share one directory per release, so two at once would clobber each other.
@@ -188,6 +191,89 @@ class Bhl(AbstractPlugin):
                 "or set the executablePath setting."
             )
         return None
+
+    @classmethod
+    def on_pre_start(
+        cls,
+        window: sublime.Window,
+        initiating_view: sublime.View,
+        workspace_folders,
+        configuration,
+    ) -> Optional[str]:
+        """
+        Pins the server root to the directory containing bhl.proj. The server only reads bhl.proj
+        from the root of a workspace folder, so a parent folder or no folder at all would make it
+        fall back to defaults and ignore the project settings.
+        """
+        proj_dir = _selected_projects.get(window.id())
+        if proj_dir and not os.path.isfile(os.path.join(proj_dir, project.PROJECT_FILE)):
+            del _selected_projects[window.id()]
+            proj_dir = None
+        if not proj_dir:
+            proj_dir = project.resolve(initiating_view.file_name(), [f.path for f in workspace_folders])
+        if not proj_dir:
+            return None
+        workspace_folders[:] = [WorkspaceFolder.from_path(proj_dir)]
+        return proj_dir
+
+
+class BhlSelectProjectFileCommand(sublime_plugin.WindowCommand):
+    """Pick the bhl.proj the server should use for this window, overriding the automatic choice."""
+
+    def run(self) -> None:
+        view = self.window.active_view()
+        file_name = view.file_name() if view else None
+        candidates = []
+        if file_name:
+            nearest = project.find_upwards(os.path.dirname(file_name))
+            if nearest:
+                candidates.append(nearest)
+        for found in project.find_in_folders(self.window.folders()):
+            if found not in candidates:
+                candidates.append(found)
+
+        items = [[os.path.basename(c) or c, c] for c in candidates]
+        items.append(["Browse…", "Choose a bhl.proj file"])
+        automatic = self.window.id() in _selected_projects
+        if automatic:
+            items.append(["Automatic", "Forget the selection and detect the project again"])
+        current = _selected_projects.get(self.window.id())
+
+        def on_select(index: int) -> None:
+            if index < 0:
+                return
+            if index < len(candidates):
+                self._apply(candidates[index])
+            elif index == len(candidates):
+                sublime.open_dialog(
+                    self._on_browse,
+                    file_types=[("BHL project", ["proj"])],
+                    directory=os.path.dirname(file_name) if file_name else None,
+                )
+            else:
+                _selected_projects.pop(self.window.id(), None)
+                self._restart()
+
+        placeholder = f"Current: {current}" if current else "Select the BHL project"
+        self.window.show_quick_panel(items, on_select, placeholder=placeholder)
+
+    def _on_browse(self, path) -> None:
+        if not path:
+            return
+        if os.path.basename(path) != project.PROJECT_FILE:
+            sublime.error_message(f'BHL: expected a "{project.PROJECT_FILE}" file, got "{os.path.basename(path)}".')
+            return
+        self._apply(os.path.dirname(path))
+
+    def _apply(self, proj_dir: str) -> None:
+        _selected_projects[self.window.id()] = proj_dir
+        self._restart()
+
+    def _restart(self) -> None:
+        view = self.window.active_view()
+        if view:
+            view.run_command("lsp_restart_server", {"config_name": Bhl.name()})
+        sublime.status_message("BHL: project selection updated")
 
 
 class BhlManageLspVersionsCommand(sublime_plugin.WindowCommand):

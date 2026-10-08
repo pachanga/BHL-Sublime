@@ -138,7 +138,13 @@ Add a `debugger_configurations` entry to your `.sublime-project` file:
 
 ## Usage
 
-Start using the package by opening the directory which contains the **bhl.proj** file
-(**Project → Add Folder to Project…**). It must appear as a separate folder entry in the
-sidebar. Try opening any `.bhl` file — if everything is correct you should see
-**"Indexing BHL scripts"** in the status bar.
+Open any `.bhl` file. The package finds the `bhl.proj` for it and starts the language server with that
+directory as its root: first the nearest `bhl.proj` in the file's parent directories, otherwise the only
+`bhl.proj` found under the folders open in the window. If there are several and none is above the file, the
+server falls back to indexing just the file's directory.
+
+To choose explicitly, run **BHL: Select Project File** from the Command Palette: pick one of the found
+`bhl.proj` files or browse for one. The server restarts with that project for the current window. The
+choice lasts until Sublime exits; pick **Automatic** to go back to detection.
+
+If everything is correct you should see **"Indexing BHL scripts"** in the status bar.

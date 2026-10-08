@@ -4,6 +4,10 @@
 		"command": "bhl_manage_lsp_versions"
 	},
 	{
+		"caption": "BHL: Select Project File",
+		"command": "bhl_select_project_file"
+	},
+	{
 		"caption": "Preferences: BHL Settings",
 		"command": "edit_settings",
 		"args": {

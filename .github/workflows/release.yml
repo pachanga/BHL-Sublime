@@ -24,6 +24,7 @@ jobs:
             Comments.tmPreferences \
             plugin.py \
             download.py \
+            project.py \
             .python-version \
             README.md
 
