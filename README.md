@@ -36,13 +36,14 @@ make install
 ## BHL language server
 
 The BHL language server is a prebuilt binary from the
-[BHL GitHub releases](https://github.com/bitdotgames/BHL/releases) (`lsp-v*` tags). The first time you open
-a `.bhl` file and no server is found, the package asks whether to download the latest release. The download
-is verified against the release's `.sha256` checksum and stored in Sublime's `Package Storage`. After
-installing, reopen the file or run **LSP: Restart Server**.
+[BHL GitHub releases](https://github.com/bitdotgames/BHL/releases) (`lsp-v*` tags). To install, switch to
+another version, or remove the download, run **BHL: Manage LSP Versions** from the Command Palette and pick a
+release. After installing, reopen the file or run **LSP: Restart Server**.
 
-Installed versions are never updated automatically. To pick a specific version, update, or remove the
-download, run **BHL: Manage LSP Versions** from the Command Palette.
+The first time you open a `.bhl` file and no server is found, the package also offers to download the latest
+release for you. Installed versions are never updated automatically.
+
+Downloads are verified against the release's `.sha256` checksum and stored in Sublime's `Package Storage`.
 
 Prefer your own build? Set `executablePath` (see [Configuration](#configuration)) to a `bhl` script from a
 [BHL checkout](https://github.com/bitdotgames/BHL) and it will be launched as `bhl lsp` instead.
