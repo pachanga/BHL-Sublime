@@ -46,8 +46,12 @@ class _InstallProgress:
                 return
             window = sublime.active_window()
             if window:
-                self._indicator = sublime.ActivityIndicator(window, "BHL: starting…")
-                self._indicator.start()
+                try:
+                    self._indicator = sublime.ActivityIndicator(window, "BHL: starting…")
+                    self._indicator.start()
+                except Exception:
+                    traceback.print_exc()
+                    self._indicator = None
 
     def __call__(self, message: str) -> None:
         match = re.search(r"(\d+)%$", message)
@@ -55,12 +59,17 @@ class _InstallProgress:
             filled = int(match.group(1)) * self.WIDTH // 100
             message = "{} [{}{}]".format(
                 message, "█" * filled, "░" * (self.WIDTH - filled))
+        # The plain status message is the reliable fallback; the indicator is a bonus.
+        sublime.set_timeout(lambda: sublime.status_message("BHL: " + message), 0)
         sublime.set_timeout(lambda: self._set_label("BHL: " + message), 0)
 
     def _set_label(self, label: str) -> None:
         with self._lock:
             if self._indicator and not self._stopped:
-                self._indicator.label = label
+                try:
+                    self._indicator.label = label
+                except Exception:
+                    traceback.print_exc()
 
     def stop(self) -> None:
         sublime.set_timeout(self._stop, 0)
