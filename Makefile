@@ -1,7 +1,7 @@
 .PHONY: all package install clean
 
 PKG_NAME := BHL-Sublime
-PKG_FILES := BHL.sublime-syntax LSP-bhl.sublime-settings Default.sublime-commands plugin.py download.py .python-version README.md
+PKG_FILES := BHL.sublime-syntax LSP-bhl.sublime-settings Default.sublime-commands Comments.tmPreferences plugin.py download.py .python-version README.md
 
 all: package
 

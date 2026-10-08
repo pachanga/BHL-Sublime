@@ -1,9 +1,155 @@
 %YAML 1.2
 ---
+# Based on the BHL grammar (https://github.com/bitdotgames/BHL, grammar/bhlLexer.g).
 name: BHL
 file_extensions:
   - bhl
 scope: source.bhl
 
+variables:
+  ident: '[a-zA-Z_][a-zA-Z_0-9]*'
+
 contexts:
-  main: []
+  main:
+    - include: comments
+    - include: preprocessor
+    - include: strings
+    - include: numbers
+    - include: declarations
+    - include: keywords
+    - include: function-calls
+    - include: operators
+
+  comments:
+    - match: //
+      scope: punctuation.definition.comment.bhl
+      push:
+        - meta_scope: comment.line.double-slash.bhl
+        - match: $\n?
+          pop: true
+    - match: /\*
+      scope: punctuation.definition.comment.begin.bhl
+      push:
+        - meta_scope: comment.block.bhl
+        - match: \*/
+          scope: punctuation.definition.comment.end.bhl
+          pop: true
+
+  # `#if FLAG`, `#else`, `#endif` -- the directive spans to the end of the line.
+  preprocessor:
+    - match: '(#)\s*(if|else|endif)\b'
+      captures:
+        1: punctuation.definition.keyword.bhl
+        2: keyword.control.import.preprocessor.bhl
+      push:
+        - meta_scope: meta.preprocessor.bhl
+        - match: '!'
+          scope: keyword.operator.logical.bhl
+        - match: '{{ident}}'
+          scope: constant.other.preprocessor.bhl
+        - include: comments
+        - match: $\n?
+          pop: true
+
+  strings:
+    - match: '"'
+      scope: punctuation.definition.string.begin.bhl
+      push:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.double.bhl
+        - match: '\\[nrt"''\\]'
+          scope: constant.character.escape.bhl
+        - match: '\\\r?\n'
+          scope: constant.character.escape.bhl
+        - match: '"'
+          scope: punctuation.definition.string.end.bhl
+          pop: true
+
+  numbers:
+    - match: '\b0[xX][0-9a-fA-F]+\b'
+      scope: constant.numeric.integer.hexadecimal.bhl
+    - match: '(?:\b[0-9]+\.[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|\b[0-9]+[eE][+-]?[0-9]+\b'
+      scope: constant.numeric.float.bhl
+    - match: '\b[0-9]+\b'
+      scope: constant.numeric.integer.decimal.bhl
+
+  declarations:
+    - match: '\b(class|interface|enum)\b\s+({{ident}})'
+      captures:
+        1: storage.type.class.bhl
+        2: entity.name.class.bhl
+    - match: '\b(namespace)\b'
+      scope: storage.type.namespace.bhl
+      push:
+        - match: '{{ident}}'
+          scope: entity.name.namespace.bhl
+        - match: '\.'
+          scope: punctuation.accessor.dot.bhl
+        - match: '(?=\S)'
+          pop: true
+    # `func [rettype[, rettype]] name(` -- the last identifier before `(` is the name.
+    # Lambdas and function types have none: `func int (` / `func (`.
+    - match: '\b(func)\b'
+      scope: storage.type.function.bhl
+      push:
+        - match: '({{ident}})(?=\s*\()'
+          captures:
+            1: entity.name.function.bhl
+          pop: true
+        - match: '(?=\()'
+          pop: true
+        - match: '(?=[;{}])'
+          pop: true
+        - match: '\bref\b'
+          scope: storage.modifier.bhl
+        - match: '{{ident}}'
+          scope: storage.type.bhl
+        - include: comments
+
+  keywords:
+    - match: '\b(?:if|else|while|do|for|foreach|in|break|continue|return|yield|paral_all|paral|defer)\b'
+      scope: keyword.control.bhl
+    - match: '\bimport\b'
+      scope: keyword.control.import.bhl
+    - match: '\b(?:coro|virtual|override|static|ref)\b'
+      scope: storage.modifier.bhl
+    - match: '\b(?:new|as|is|typeof)\b'
+      scope: keyword.operator.word.bhl
+    - match: '\b(?:true|false)\b'
+      scope: constant.language.boolean.bhl
+    - match: '\bnull\b'
+      scope: constant.language.null.bhl
+
+  function-calls:
+    - match: '({{ident}})(?=\s*\()'
+      scope: variable.function.bhl
+
+  operators:
+    - match: '\.\.\.'
+      scope: keyword.operator.variadic.bhl
+    - match: '\.\.'
+      scope: keyword.operator.global.bhl
+    - match: '\.'
+      scope: punctuation.accessor.dot.bhl
+    - match: '\+\+|--'
+      scope: keyword.operator.increment-decrement.bhl
+    - match: '\+=|-=|\*=|/='
+      scope: keyword.operator.assignment.augmented.bhl
+    - match: '<<|>>'
+      scope: keyword.operator.bitwise.shift.bhl
+    - match: '<=|>=|==|!=|<|>'
+      scope: keyword.operator.comparison.bhl
+    - match: '&&|\|\||!'
+      scope: keyword.operator.logical.bhl
+    - match: '[&|~]'
+      scope: keyword.operator.bitwise.bhl
+    - match: '[-+*/%]'
+      scope: keyword.operator.arithmetic.bhl
+    - match: '='
+      scope: keyword.operator.assignment.bhl
+    - match: '[?:]'
+      scope: keyword.operator.ternary.bhl
+    - match: ','
+      scope: punctuation.separator.comma.bhl
+    - match: ';'
+      scope: punctuation.terminator.statement.bhl
